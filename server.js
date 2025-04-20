@@ -1,7 +1,7 @@
 import express from "express"
 import fetch from "node-fetch"
-import cors from "cors"
 import dotenv from "dotenv"
+import cors from "cors"
 
 dotenv.config()
 
@@ -10,39 +10,22 @@ app.use(express.json())
 app.use(cors())
 
 app.get("/", (req, res) => {
-  const key = process.env.FIRECRAWL_API_KEY
-  res.json({
-    message: "Servidor está rodando",
-    apiKeyDetectada: key ? "✅ OK" : "❌ Ausente",
-    apiKeyValor: key || null
-  })
+  res.send({ message: "Servidor ScrapingBee rodando!" })
 })
 
 app.post("/api/crawl", async (req, res) => {
   const { url } = req.body
-
   if (!url) return res.status(400).json({ error: "URL is required" })
 
+  const apiKey = process.env.SCRAPINGBEE_API_KEY
+  const endpoint = `https://app.scrapingbee.com/api/v1/`
+
   try {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 10000)
-
-    const response = await fetch("https://api.firecrawl.dev/v1/scrape", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.FIRECRAWL_API_KEY
-      },
-      body: JSON.stringify({ url, render: true, limit: 1 }),
-      signal: controller.signal
-    })
-
-    clearTimeout(timeout)
-
-    const data = await response.json()
-    res.status(response.ok ? 200 : response.status).json(data)
+    const response = await fetch(`${endpoint}?api_key=${apiKey}&url=${encodeURIComponent(url)}&render_js=false`)
+    const data = await response.text() // texto cru da página
+    res.send(data)
   } catch (err) {
-    res.status(err.name === "AbortError" ? 504 : 500).json({ error: err.message })
+    res.status(500).json({ error: err.message })
   }
 })
 
